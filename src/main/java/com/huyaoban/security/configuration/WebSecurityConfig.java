@@ -1,15 +1,24 @@
 package com.huyaoban.security.configuration;
 
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+	/**
+	 * 注入数据源
+	 */
+	@Autowired
+	private DataSource dataSource;
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -21,18 +30,21 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	}
 
 	/**
-	 * Spring
-	 * Security支持各种来源的用户数据，包括内存、数据库、LDAP等。它们被抽象为一个UserDetailsService接口，任何实现了这个接口的
-	 * 对象都可以作为认证数据源。InMemoryUserDetailsMananger是UserDetailsService接口中的一个实现类，它将用户数据源保存在内存里，在一些不需要
-	 * 引入数据库这种重数据源的系统中很有帮助。
+	 * 让Spring Security使用数据库来管理用户
 	 */
 	@Bean
 	public UserDetailsService userDetailsService() {
-		InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+		JdbcUserDetailsManager manager = new JdbcUserDetailsManager();
+		// 设置数据源
+		manager.setDataSource(dataSource);
 
 		// 创建2个用户，设置密码，并配置角色
-		manager.createUser(User.withUsername("user").password("123").roles("USER").build());
-		manager.createUser(User.withUsername("admin").password("123").roles("ADMIN").build());
+		if (!manager.userExists("user")) {
+			manager.createUser(User.withUsername("user").password("123").roles("USER").build());
+		}
+		if (!manager.userExists("admin")) {
+			manager.createUser(User.withUsername("admin").password("123").roles("USER", "ADMIN").build());
+		}
 
 		return manager;
 	}
