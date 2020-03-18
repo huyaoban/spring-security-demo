@@ -1,6 +1,10 @@
 package com.huyaoban.security.configuration;
 
+import java.io.IOException;
+
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,7 +12,10 @@ import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
 
 import com.huyaoban.security.handler.MyAuthenticationFailureHandler;
@@ -39,7 +46,32 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				// 启用自动登陆,记住我
 				.failureHandler(new MyAuthenticationFailureHandler()).and().rememberMe()
 				.tokenRepository(jdbcTokenRepository)
-				.userDetailsService(myUserDetailsService).and().csrf().disable();
+				// 设置注销登录，注销请求URL为/myLogout，默认为/logout
+				.userDetailsService(myUserDetailsService).and().csrf().disable().logout().logoutUrl("/myLogout")
+				// 注销成功后跳转到的URL
+				// 注销成功的处理方式，不同于logoutSuccessUrl的重定向，logoutSuccessHandler更加灵活
+				.logoutSuccessUrl("/app/api/hello").logoutSuccessHandler(new LogoutSuccessHandler() {
+
+					@Override
+					public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response,
+							Authentication authentication) throws IOException, ServletException {
+
+					}
+					// 失效用户的HttpSession，注销成功删除指定的cookie，清除用户的验证信息
+				}).invalidateHttpSession(true).deleteCookies("cookie1", "cookie2").clearAuthentication(true)
+				// 用于注销的处理句柄，允许自定义一些清理策略
+				// 事实上LogoutSuccessHandler也能做到
+				.addLogoutHandler(new LogoutHandler() {
+
+					@Override
+					public void logout(HttpServletRequest request, HttpServletResponse response,
+							Authentication authentication) {
+
+					}
+
+				});
+		
+		// logoutSuccessHandler会清空logoutSuccessUrl属性导致注销登录成功后没有跳转，把logoutSuccessHandler去掉或者在logoutSuccessHandler中实现跳转，可查看LogoutConfigurer
 
 	}
 
