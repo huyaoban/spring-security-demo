@@ -10,11 +10,15 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
 import com.huyaoban.security.handler.MyAuthenticationFailureHandler;
+import com.huyaoban.security.service.MyUserDetailsService;
 
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	@Autowired
 	private AuthenticationDetailsSource<HttpServletRequest, WebAuthenticationDetails> myWebAuthenticationDetailsSource;
+
+	@Autowired
+	private MyUserDetailsService myUserDetailsService;
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -24,7 +28,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.hasRole("USER").antMatchers("/app/api/**", "/captcha.jpg").permitAll().anyRequest().authenticated()
 				.and().formLogin().authenticationDetailsSource(myWebAuthenticationDetailsSource)
 				.loginPage("/myLogin.html").loginProcessingUrl("/auth/form").permitAll()
-				.failureHandler(new MyAuthenticationFailureHandler()).and().csrf().disable();
+				// 启用自动登陆,记住我
+				.failureHandler(new MyAuthenticationFailureHandler()).and().rememberMe()
+				.userDetailsService(myUserDetailsService).and().csrf().disable();
 
 	}
 
