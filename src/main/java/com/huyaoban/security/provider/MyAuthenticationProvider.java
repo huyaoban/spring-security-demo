@@ -1,48 +1,42 @@
 package com.huyaoban.security.provider;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.authentication.dao.AbstractUserDetailsAuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
+import com.huyaoban.security.exception.VerificationCodeException;
+
 //UsernamePasswordAuthenticationToken
+//UsernamePasswordAuthenticationFilter
 //Principal
 //Authentication
 //AuthenticationProvider
 //ProviderManager
 //DaoAuthenticationProvider
+//由于只是在常规的认证之上加上了图形验证码验证,其他流程并没有变化,所以只需继承DaoAuthenticationProvider, 并稍作增添即可
 @Component
-public class MyAuthenticationProvider extends AbstractUserDetailsAuthenticationProvider {
+public class MyAuthenticationProvider extends DaoAuthenticationProvider {
 
-	@Autowired
-	private UserDetailsService userDetailsService;
+	public MyAuthenticationProvider(UserDetailsService userDetailsService) {
+		this.setUserDetailsService(userDetailsService);
+	}
 
 	@Override
 	protected void additionalAuthenticationChecks(UserDetails userDetails,
 			UsernamePasswordAuthenticationToken authentication) throws AuthenticationException {
-		// 编写更多校验逻辑
-
-		// 校验密码
-		if (authentication.getCredentials() == null) {
-			throw new BadCredentialsException(
-					this.messages.getMessage("AbstractUserDetailsAuthenticationProvider.badCredentials", "密码不能为空"));
-		} else {
-			String presentedPassword = authentication.getCredentials().toString();
-			if (!presentedPassword.equals(userDetails.getPassword())) {
-				throw new BadCredentialsException(
-						this.messages.getMessage("AbstractUserDetailsAuthenticationProvider.badCredentials", "密码错误"));
-			}
+		// 获取详细信息
+		VerificationCodeWebAuthenticationDetails details = (VerificationCodeWebAuthenticationDetails) authentication
+				.getDetails();
+		// 一旦发现验证码不正确就立刻抛出相应异常信息
+		if (!details.getImageCodeIsRight()) {
+			throw new VerificationCodeException();
 		}
-	}
 
-	@Override
-	protected UserDetails retrieveUser(String username, UsernamePasswordAuthenticationToken authentication)
-			throws AuthenticationException {
-		return userDetailsService.loadUserByUsername(username);
+		// 调用父类方法完成密码验证
+		super.additionalAuthenticationChecks(userDetails, authentication);
 	}
 
 }
