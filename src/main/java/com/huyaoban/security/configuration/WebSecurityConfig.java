@@ -29,7 +29,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.and().formLogin().authenticationDetailsSource(myWebAuthenticationDetailsSource)
 				.loginPage("/myLogin.html").loginProcessingUrl("/auth/form").permitAll()
 				// 启用自动登陆,记住我
-				.failureHandler(new MyAuthenticationFailureHandler()).and().rememberMe()
+				.failureHandler(new MyAuthenticationFailureHandler()).and().rememberMe().key("blurooo")
 				.userDetailsService(myUserDetailsService).and().csrf().disable();
 
 	}
