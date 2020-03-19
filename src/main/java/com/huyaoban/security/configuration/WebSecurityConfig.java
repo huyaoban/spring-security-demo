@@ -7,8 +7,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-
-import com.huyaoban.security.strategy.MyInvalidSessionStrategy;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
@@ -17,9 +16,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	protected void configure(HttpSecurity http) throws Exception {
 		http.authorizeRequests().antMatchers("/admin/api/**").hasAnyAuthority("ROLE_ADMIN").antMatchers("/user/api/**")
 				.hasRole("USER").antMatchers("/app/api/**").permitAll().anyRequest().authenticated()
-				.and().formLogin().and().sessionManagement().invalidSessionUrl("/session/invalid")
-				// 配置session失效策略
-				.invalidSessionStrategy(new MyInvalidSessionStrategy());
+				// 最大会话数设置为1，那么新登录的会话会踢掉旧的会话
+				.and().formLogin().and().sessionManagement().maximumSessions(1)
+				// 如果我们需要在会话数达到最大值时，阻止新会话建立，而不是踢掉旧会话，设置为true
+				.maxSessionsPreventsLogin(true);
 
 	}
 
@@ -30,6 +30,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		manager.createUser(User.withUsername("admin").password("123").roles("USER", "ADMIN").build());
 
 		return manager;
+	}
+
+	/**
+	 * 启用会话创建和销毁的事件监听器，用于管理会话的创建和销毁
+	 * 
+	 * @return
+	 */
+	@Bean
+	public HttpSessionEventPublisher httpSessionEventPublisher() {
+		return new HttpSessionEventPublisher();
 	}
 
 }
