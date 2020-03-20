@@ -1,5 +1,6 @@
 package com.huyaoban.security.configuration;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -8,9 +9,13 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.security.SpringSessionBackedSessionRegistry;
 
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+	@Autowired
+	private FindByIndexNameSessionRepository sessionRepository;
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -18,8 +23,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.hasRole("USER").antMatchers("/app/api/**").permitAll().anyRequest().authenticated()
 				// 最大会话数设置为1，那么新登录的会话会踢掉旧的会话
 				.and().formLogin().and().sessionManagement().maximumSessions(1)
-				// 如果我们需要在会话数达到最大值时，阻止新会话建立，而不是踢掉旧会话，设置为true
-				.maxSessionsPreventsLogin(true);
+				// 使用Session提供的会话注册表
+				.sessionRegistry(sessionRegistry());
 
 	}
 
@@ -42,4 +47,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		return new HttpSessionEventPublisher();
 	}
 
+	@Bean
+	public SpringSessionBackedSessionRegistry sessionRegistry() {
+		return new SpringSessionBackedSessionRegistry(sessionRepository);
+	}
 }
